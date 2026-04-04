@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   LayoutGrid,
   CheckCircle,
@@ -9,140 +8,52 @@ import {
   SlidersHorizontal,
   ArrowUpDown,
   Inbox,
+  Sparkles,
 } from "lucide-react";
 
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 import FoodCard from "@/components/food/FoodCard";
 import RequestCard from "@/components/requests/RequestCard";
+import { useEffect, useState, useCallback } from "react";
+import { getMyListings, deleteInventoryListing } from "@/services/inventoryService";
+import { getIncomingRequests, updateRequestStatus } from "@/services/requestService";
 
-/* ─── Static Dummy Data ─── */
-const INITIAL_PRODUCT_LISTINGS = [
-  {
-    id: 1,
-    name: "Lay's Classic Salted Chips",
-    category: "Snacks",
-    units: 500,
-    mrp: 20,
-    ourPrice: 11,
-    expiry: "Expiry: 18 Apr 2026",
-    status: "active",
-    location: "Koramangala Warehouse, Bengaluru",
-    image: "/products/lays.png",
-  },
-  {
-    id: 2,
-    name: "Kurkure Masala Munch",
-    category: "Snacks",
-    units: 250,
-    mrp: 10,
-    ourPrice: 6,
-    expiry: "Expires in 18 days",
-    status: "reserved",
-    location: "Indiranagar, Bengaluru",
-    image: "https://images.unsplash.com/photo-1621447504864-d8686e12698c?w=400&q=80",
-  },
-  {
-    id: 3,
-    name: "Britannia Good Day",
-    category: "Biscuits",
-    units: 400,
-    mrp: 30,
-    ourPrice: 15,
-    expiry: "Expiry: 22 May 2026",
-    status: "active",
-    location: "JP Nagar Warehouse, Bengaluru",
-    image: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&q=80",
-  },
-  {
-    id: 4,
-    name: "Coca-Cola 500ml",
-    category: "Beverages",
-    units: 200,
-    mrp: 40,
-    ourPrice: 20,
-    expiry: "Expires in 5 days",
-    status: "sold",
-    location: "Whitefield, Bengaluru",
-    image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&q=80",
-  },
-  {
-    id: 5,
-    name: "Parle-G Family Pack",
-    category: "Biscuits",
-    units: 1500,
-    mrp: 50,
-    ourPrice: 30,
-    expiry: "Expiry: 10 Aug 2026",
-    status: "active",
-    location: "HSR Layout, Bengaluru",
-    image: "/products/parleg.png",
-  },
-  {
-    id: 6,
-    name: "Bingo Mad Angles",
-    category: "Snacks",
-    units: 350,
-    mrp: 15,
-    ourPrice: 8,
-    expiry: "Expires in 12 days",
-    status: "reserved",
-    location: "Bellandur, Bengaluru",
-    image: "/products/bingo.png",
-  },
-];
-
-const INITIAL_REQUESTS = [
-  {
-    id: 1,
-    buyerName: "Metro Wholesale Traders",
-    location: "Koramangala, Bengaluru",
-    productName: "Lay's Classic Salted Chips",
-    quantity: 300,
-    pickupTime: "5:00 PM Today",
-    note: "Need for retail distribution this weekend.",
-    status: "pending",
-  },
-  {
-    id: 2,
-    buyerName: "Seva Retail Supply",
-    location: "Indiranagar, Bengaluru",
-    productName: "Kurkure Masala Munch",
-    quantity: 250,
-    pickupTime: "4:00 PM Today",
-    note: "For quick moving store stock.",
-    status: "accepted",
-  },
-  {
-    id: 3,
-    buyerName: "City Retail Supply",
-    location: "JP Nagar, Bengaluru",
-    productName: "Britannia Good Day",
-    quantity: 400,
-    pickupTime: "7:00 PM Today",
-    note: "Looking for repeat bulk purchase.",
-    status: "pending",
-  },
-  {
-    id: 4,
-    buyerName: "ValueMart Wholesale",
-    location: "Whitefield, Bengaluru",
-    productName: "Coca-Cola 500ml",
-    quantity: 200,
-    pickupTime: "6:30 PM Today",
-    note: "Urgent for store replenishment.",
-    status: "pending",
-  },
-];
-
+const CATEGORY_IMAGES = {
+  'Snacks & Confectionery': 'https://images.unsplash.com/photo-1599490659223-eb157cbef92a?w=400&q=80',
+  'Beverages': 'https://images.unsplash.com/photo-1551028150-64b9f398f678?w=400&q=80',
+  'Staples & Grains': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=80',
+  'Packaged Meals': 'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?w=400&q=80',
+  'Dairy & Perishables': 'https://images.unsplash.com/photo-1550583724-125581cc25ab?w=400&q=80',
+  'Other': 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400&q=80'
+};
 const FILTER_OPTIONS = ["All", "Active", "Reserved", "Sold"];
 
 export default function DonorDashboard() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [sortOrder, setSortOrder] = useState("newest");
+  const [listings, setListings] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [listings, setListings] = useState(INITIAL_PRODUCT_LISTINGS);
-  const [requests, setRequests] = useState(INITIAL_REQUESTS);
+  const fetchData = useCallback(async () => {
+    try {
+      const [listingsData, requestsData] = await Promise.all([
+        getMyListings(),
+        getIncomingRequests()
+      ]);
+      setListings(listingsData || []);
+      setRequests(requestsData || []);
+    } catch (error) {
+      console.error("Failed to fetch donor data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const filteredListings = listings.filter((item) => {
     if (activeFilter === "All") return true;
@@ -150,19 +61,67 @@ export default function DonorDashboard() {
   });
 
   const STATS = [
-    { title: "Total Listings", value: listings.length, icon: LayoutGrid, color: "purple", trend: "Active inventory listings" },
-    { title: "Active Deals", value: listings.filter(l => l.status === "active").length, icon: CheckCircle, color: "green", trend: "Currently available for sale" },
-    { title: "Reserved", value: listings.filter(l => l.status === "reserved").length, icon: Clock4, color: "amber", trend: "Under buyer review" },
-    { title: "Sold", value: listings.filter(l => l.status === "sold").length, icon: Package, color: "blue", trend: "Successfully cleared" },
+    { 
+      title: "Total Listings", 
+      value: listings.length, 
+      icon: LayoutGrid, 
+      color: "purple", 
+      trend: "Total unique products in catalog" 
+    },
+    { 
+      title: "Active Deals", 
+      value: listings.filter(l => l.status === "active").length, 
+      icon: CheckCircle, 
+      color: "green", 
+      trend: "Available and on the shelf" 
+    },
+    { 
+      title: "Pending Actions", 
+      value: requests.filter(r => r.status === "Pending").length, 
+      icon: Clock4, 
+      color: "amber", 
+      trend: "Buyer inquiries awaiting you" 
+    },
+    { 
+      title: "Completed", 
+      value: requests.filter(r => r.status === "Sold").length, 
+      icon: Package, 
+      color: "blue", 
+      trend: "Successful liquidations" 
+    },
   ];
 
-  const handleDeleteListing = (id) => {
-    setListings(listings.filter((l) => l.id !== id));
+  const handleRequestStatusChange = async (id, newStatus) => {
+    try {
+      await updateRequestStatus(id, newStatus);
+      // Re-fetch all data to ensure Inventory stats (Active/Reserved/Sold) are in sync
+      await fetchData();
+    } catch (error) {
+      console.error("Failed to update status:", error);
+    }
   };
 
-  const handleRequestStatusChange = (id, newStatus) => {
-    setRequests(requests.map(r => r.id === id ? { ...r, status: newStatus } : r));
+  const handleDelete = async (itemId) => {
+    if (!window.confirm("Are you sure you want to delete this listing? This action cannot be undone.")) return;
+
+    try {
+      await deleteInventoryListing(itemId);
+      setListings(listings.filter(l => l._id !== itemId));
+    } catch (error) {
+      console.error("Failed to delete listing:", error);
+      alert("Failed to delete the listing. Please try again.");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+        <Sparkles className="w-10 h-10 text-green-500 mb-4 animate-bounce" />
+        <h3 className="text-lg font-bold text-gray-900">Syncing Warehouse Data...</h3>
+        <p className="text-sm text-gray-400 mt-1">Fetching your live inventory and buyer interest</p>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in space-y-10">
@@ -215,13 +174,29 @@ export default function DonorDashboard() {
 
         {filteredListings.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            {filteredListings.map((item) => (
-              <FoodCard
-                key={item.id}
-                item={item}
-                onDelete={handleDeleteListing}
-              />
-            ))}
+            {filteredListings.map((item) => {
+              // Map DB fields to FoodCard expectations
+              const cardItem = {
+                ...item,
+                id: item._id,
+                name: item.productName,
+                units: item.quantityAvailable,
+                mrp: item.mrpPerUnit,
+                ourPrice: item.listingPrice,
+                expiry: `Expiry: ${new Date(item.expiryDate).toLocaleDateString()}`,
+                image: item.productImages?.[0] || CATEGORY_IMAGES[item.category] || CATEGORY_IMAGES.Other,
+                location: item.location?.coordinates 
+                  ? `Lat: ${item.location.coordinates[1]}, Lng: ${item.location.coordinates[0]}` 
+                  : "Indiranagar, Bengaluru"
+              };
+              return (
+                <FoodCard
+                  key={item._id}
+                  item={cardItem}
+                  onDelete={() => handleDelete(item._id)}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -247,9 +222,24 @@ export default function DonorDashboard() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-5">
-          {requests.map((req) => (
-            <RequestCard key={req.id} request={req} onStatusChange={handleRequestStatusChange} />
-          ))}
+          {requests.map((req) => {
+             // Map DB fields to RequestCard expectations
+             const cardRequest = {
+               ...req,
+               id: req._id,
+               buyerName: `${req.buyerId?.firstName} ${req.buyerId?.lastName}`,
+               productName: req.inventoryId?.productName,
+               quantity: req.quantityRequested,
+               pickupTime: req.pickupDeliveryTime,
+               status: req.status.toLowerCase()
+             };
+             return <RequestCard key={req._id} request={cardRequest} onStatusChange={handleRequestStatusChange} />;
+          })}
+          {requests.length === 0 && (
+            <div className="p-10 bg-gray-50 border-2 border-dashed border-gray-100 rounded-3xl text-center col-span-full">
+              <p className="text-sm font-bold text-gray-400">No buyer requests yet.</p>
+            </div>
+          )}
         </div>
       </section>
     </div>

@@ -40,6 +40,7 @@ async function createListing(payload) {
 async function listListings(filters = {}) {
   // Return all active listings for the Buyer (Customer) Feed
   return await Inventory.find({ status: 'active', ...filters })
+    .populate('sellerId', 'organizationName address phoneNumber')
     .sort({ createdAt: -1 });
 }
 
@@ -47,8 +48,27 @@ async function getListingById(id) {
   return await Inventory.findById(id).populate('sellerId', 'firstName lastName organizationName address');
 }
 
+async function deleteListing(listingId, sellerId) {
+  const listing = await Inventory.findById(listingId);
+  if (!listing) {
+    const error = new Error("Listing not found.");
+    error.status = 404;
+    throw error;
+  }
+
+  // Security check: must be the owner
+  if (listing.sellerId.toString() !== sellerId.toString()) {
+    const error = new Error("Not authorized to delete this listing.");
+    error.status = 403;
+    throw error;
+  }
+
+  return await Inventory.findByIdAndDelete(listingId);
+}
+
 module.exports = {
   createListing,
   listListings,
   getListingById,
+  deleteListing,
 };

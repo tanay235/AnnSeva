@@ -1,13 +1,41 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { Bell, Plus, Search, Leaf, Home, List, User, LogOut, Settings } from "lucide-react";
+import { Bell, Plus, Search, Leaf, Home, List, User, LogOut, Settings, Check, Clock, Package, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
+import { getNotifications, markAsRead } from "@/services/notificationService";
 
 export default function DashboardHeader({ isBuyer }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotifyOpen, setIsNotifyOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const { user, logout } = useAuth();
+  
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  useEffect(() => {
+    async function fetchNotifications() {
+      try {
+        const data = await getNotifications();
+        setNotifications(data || []);
+      } catch (err) {
+        console.error("Failed to fetch notifications:", err);
+      }
+    }
+    if (user) fetchNotifications();
+  }, [user]);
+
+  const handleMarkRead = async (id) => {
+    try {
+      await markAsRead(id);
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+    } catch (err) {
+      console.error("Failed to mark as read:", err);
+    }
+  };
+
   const dashboardHref = isBuyer ? "/dashboard/buyer" : "/dashboard/seller";
   
   return (
@@ -28,12 +56,96 @@ export default function DashboardHeader({ isBuyer }) {
       {/* Right: Actions */}
       <div className="flex items-center gap-3 shrink-0">
         {/* Notification */}
-        <button onClick={() => alert("You have 3 new notifications!")} className="relative w-9 h-9 rounded-xl border border-border bg-white hover:bg-gray-50 flex items-center justify-center transition-colors shadow-sm">
-          <Bell className="w-4 h-4 text-gray-500" />
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-            3
-          </span>
-        </button>
+        <div className="relative">
+          <button 
+            onClick={() => setIsNotifyOpen(!isNotifyOpen)} 
+            className={cn(
+              "relative w-10 h-10 rounded-xl border flex items-center justify-center transition-all shadow-sm active:scale-95",
+              isNotifyOpen ? "bg-green-50 border-green-200" : "bg-white border-border hover:bg-gray-50"
+            )}
+          >
+            <Bell className={cn("w-4.5 h-4.5", isNotifyOpen ? "text-green-600" : "text-gray-500")} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-[10px] font-black rounded-lg flex items-center justify-center border-2 border-white shadow-sm animate-bounce">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Notifications Dropdown */}
+          {isNotifyOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setIsNotifyOpen(false)}></div>
+              <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white border border-border rounded-2xl shadow-2xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                  <h3 className="font-black text-xs text-gray-900 uppercase tracking-widest">Recent Alerts</h3>
+                  <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full uppercase">
+                    {unreadCount} New
+                  </span>
+                </div>
+                
+                <div className="max-h-[70vh] overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-10 text-center space-y-3">
+                      <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto">
+                        <Bell className="w-6 h-6 text-gray-300" />
+                      </div>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-tight">No notifications yet</p>
+                    </div>
+                  ) : notifications.map((n) => (
+                    <div 
+                      key={n._id}
+                      onClick={() => !n.isRead && handleMarkRead(n._id)}
+                      className={cn(
+                        "p-4 border-b border-gray-50 flex gap-4 hover:bg-gray-50 transition-colors cursor-pointer group relative",
+                        !n.isRead && "bg-green-50/30"
+                      )}
+                    >
+                      {!n.isRead && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500" />
+                      )}
+                      
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
+                        n.type === 'request' ? "bg-amber-50 border-amber-100" : "bg-blue-50 border-blue-100"
+                      )}>
+                         {n.type === 'request' ? <Package className="w-5 h-5 text-amber-600" /> : <Clock className="w-5 h-5 text-blue-600" />}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-0.5">
+                           <h4 className="text-sm font-black text-gray-900 truncate">{n.title}</h4>
+                           <span className="text-[9px] font-bold text-gray-400 uppercase">{new Date(n.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 font-medium leading-relaxed italic line-clamp-2">
+                           "{n.message}"
+                        </p>
+                        {!n.isRead && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkRead(n._id);
+                            }}
+                            className="mt-2 text-[9px] font-black text-green-600 hover:text-green-700 uppercase tracking-widest flex items-center gap-1 group/mark"
+                          >
+                            <Check className="w-3 h-3" />
+                            Mark as Read
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="p-3 border-t border-gray-100 bg-gray-50/50 text-center">
+                   <button className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-900 transition-colors">
+                      View All Activity (Order History)
+                   </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         {isBuyer ? (
           /* Buyer Specific CTA: Browse Deals */

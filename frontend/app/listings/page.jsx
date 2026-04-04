@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -23,121 +22,29 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { getNearbyDeals } from "@/services/inventoryService";
+import { createRequest } from "@/services/requestService";
 
-const SELLERS = [
-  {
-    id: 1,
-    name: "Metro Wholesale Traders",
-    location: "Indiranagar Warehouse",
-    distance: "3 km away",
-    listingsCount: 5,
-    businessType: "FMCG Distributor",
-    address: "Indiranagar 100ft Road, Bengaluru",
-    inventory: [
-      {
-        id: "m1",
-        name: "Coca-Cola 500ml",
-        units: 200,
-        mrp: 40,
-        recommendedPrice: 25,
-        expiry: "30 days",
-        category: "Beverages",
-        urgency: "Low",
-        aiInsight: "Stable demand. Good for regular stock replenishment.",
-        image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&q=80"
-      }
-    ]
-  },
-  {
-    id: 2,
-    name: "Khandelwal Distributors",
-    location: "Koramangala",
-    distance: "2.5 km away",
-    listingsCount: 6,
-    businessType: "FMCG Distributor",
-    address: "Koramangala Industrial Area, Bengaluru",
-    phone: "+91 XXXXX XXXXX",
-    inventory: [
-      {
-        id: "k1",
-        name: "Lay's Classic Salted Chips",
-        units: 500,
-        mrp: 20,
-        recommendedPrice: 11,
-        expiry: "18 days",
-        category: "Snacks",
-        urgency: "High",
-        aiInsight: "High demand expected. Suggested for quick liquidation. Best selling range: ₹10–₹12",
-        image: "https://images.unsplash.com/photo-1566478431375-704386ca0248?w=400&q=80"
-      },
-      {
-        id: "k2",
-        name: "Kurkure Masala Munch",
-        units: 300,
-        mrp: 15,
-        recommendedPrice: 9,
-        expiry: "12 days",
-        category: "Snacks",
-        urgency: "High",
-        aiInsight: "Fast moving snack. High clearance probability at recommended price.",
-        image: "https://images.unsplash.com/photo-1621447504864-d8686e12698c?w=400&q=80"
-      },
-      {
-        id: "k3",
-        name: "Britannia Good Day",
-        units: 400,
-        mrp: 30,
-        recommendedPrice: 18,
-        expiry: "25 days",
-        category: "Biscuits",
-        urgency: "Medium",
-        aiInsight: "Steady sales. Recommended for bulk retail purchase.",
-        image: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&q=80"
-      },
-      {
-        id: "k4",
-        name: "Coca-Cola 500ml",
-        units: 200,
-        mrp: 40,
-        recommendedPrice: 25,
-        expiry: "30 days",
-        category: "Beverages",
-        urgency: "Low",
-        aiInsight: "Seasonal peak approaching. Stock up for better margins.",
-        image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&q=80"
-      }
-    ]
-  },
-  {
-    id: 3,
-    name: "ValueMart Supply Chain",
-    location: "Whitefield",
-    distance: "4 km away",
-    listingsCount: 4,
-    businessType: "Distributor",
-    address: "Whitefield Main Road, Bengaluru",
-    inventory: []
-  },
-  {
-    id: 4,
-    name: "City Retail Supply",
-    location: "JP Nagar",
-    distance: "3.8 km away",
-    listingsCount: 7,
-    businessType: "Manufacturer",
-    address: "JP Nagar 2nd Phase, Bengaluru",
-    inventory: []
-  }
-];
+const CATEGORY_IMAGES = {
+  'Snacks & Confectionery': 'https://images.unsplash.com/photo-1599490659223-eb157cbef92a?w=400&q=80',
+  'Beverages': 'https://images.unsplash.com/photo-1551028150-64b9f398f678?w=400&q=80',
+  'Staples & Grains': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=80',
+  'Packaged Meals': 'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?w=400&q=80',
+  'Dairy & Perishables': 'https://images.unsplash.com/photo-1550583724-125581cc25ab?w=400&q=80',
+  'Other': 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400&q=80'
+};
 
-const CATEGORIES = ["All", "Snacks", "Beverages", "Biscuits", "FMCG"];
-const FILTERS = ["Expiring Soon", "High Discount", "Under ₹15/unit"];
+const CATEGORIES = ["All", "Snacks & Confectionery", "Beverages", "Staples & Grains", "Packaged Meals", "Dairy & Perishables"];
+const FILTERS = ["Expiring Soon", "High Discount", "Under ₹100"];
 
 export default function ListingsPage() {
-  const [selectedSeller, setSelectedSeller] = useState(SELLERS[1]); // Default to Khandelwal
+  const [sellers, setSellers] = useState([]);
+  const [selectedSeller, setSelectedSeller] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [sortBy, setSortBy] = useState("Recommended");
+  const [loading, setLoading] = useState(true);
   
   // Purchase Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -145,6 +52,57 @@ export default function ListingsPage() {
   const [purchaseQuantity, setPurchaseQuantity] = useState(1);
   const [purchaseNote, setPurchaseNote] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    async function fetchListings() {
+      try {
+        const deals = await getNearbyDeals();
+        
+        // Group flat inventory by Seller
+        const sellersMap = {};
+        deals.forEach(deal => {
+          const sellerId = deal.sellerId?._id || 'unknown';
+          if (!sellersMap[sellerId]) {
+            sellersMap[sellerId] = {
+              id: sellerId,
+              name: deal.sellerId?.organizationName || 'Independent Seller',
+              location: "Jaipur, Rajasthan",
+              distance: "Nearby",
+              listingsCount: 0,
+              businessType: "Verified Distributor",
+              address: deal.sellerId?.address || "Address Not Shared",
+              phone: deal.sellerId?.phoneNumber || "Contact Shared on Request",
+              inventory: []
+            };
+          }
+          
+          sellersMap[sellerId].inventory.push({
+            id: deal._id,
+            name: deal.productName,
+            units: deal.quantityAvailable,
+            mrp: deal.mrpPerUnit,
+            recommendedPrice: deal.listingPrice,
+            expiry: `${Math.ceil((new Date(deal.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))} days`,
+            category: deal.category,
+            urgency: new Date(deal.expiryDate) - new Date() < 10*24*60*60*1000 ? "High" : "Medium",
+            aiInsight: deal.description || "Fresh stock from warehouse. Optimal for retail resale.",
+            image: deal.productImages?.[0] || CATEGORY_IMAGES[deal.category] || CATEGORY_IMAGES.Other
+          });
+          sellersMap[sellerId].listingsCount++;
+        });
+
+        const sellersList = Object.values(sellersMap);
+        setSellers(sellersList);
+        if (sellersList.length > 0) setSelectedSeller(sellersList[0]);
+      } catch (error) {
+        console.error("Failed to fetch marketplace data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchListings();
+  }, []);
 
   const handleOpenPurchaseModal = (item) => {
     setPurchaseItem(item);
@@ -154,32 +112,48 @@ export default function ListingsPage() {
     setIsModalOpen(true);
   };
 
-  const handleConfirmPurchase = () => {
-    // Here you would typically send the data to a backend
-    // console.log("Purchase Requested:", {
-    //   item: purchaseItem.name,
-    //   quantity: purchaseQuantity,
-    //   totalPrice: purchaseQuantity * purchaseItem.recommendedPrice,
-    //   note: purchaseNote
-    // });
-    setIsSuccess(true);
-    setTimeout(() => {
-      setIsModalOpen(false);
-      setIsSuccess(false);
-    }, 2000);
+  const handleConfirmPurchase = async () => {
+    if (!purchaseItem || !selectedSeller) return;
+    setIsSubmitting(true);
+    try {
+      await createRequest({
+        sellerId: selectedSeller.id,
+        inventoryId: purchaseItem.id,
+        quantityRequested: purchaseQuantity,
+        unit: 'Units',
+        expectedPriceTotal: purchaseQuantity * purchaseItem.recommendedPrice,
+        pickupDeliveryTime: '5:00 PM Today',
+        note: purchaseNote
+      });
+      setIsSuccess(true);
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setIsSuccess(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to send purchase request:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const sortedInventory = [...(selectedSeller?.inventory || [])].sort((a, b) => {
-    if (sortBy === "Price: Low to High") {
-      return a.recommendedPrice - b.recommendedPrice;
-    }
-    if (sortBy === "Expiry: Soonest") {
-      const daysA = parseInt(a.expiry);
-      const daysB = parseInt(b.expiry);
-      return daysA - daysB;
-    }
-    return 0;
+  const filteredSellers = sellers.filter(seller => {
+    const matchesSearch = seller.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         seller.address.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
+
+  const sortedInventory = [...(selectedSeller?.inventory || [])]
+    .filter(item => activeCategory === "All" || item.category === activeCategory)
+    .sort((a, b) => {
+      if (sortBy === "Price: Low to High") {
+        return a.recommendedPrice - b.recommendedPrice;
+      }
+      if (sortBy === "Expiry: Soonest") {
+        return parseInt(a.expiry) - parseInt(b.expiry);
+      }
+      return 0;
+    });
 
   return (
     <div className="flex min-h-screen bg-gray-50/50">
@@ -273,7 +247,12 @@ export default function ListingsPage() {
             <div className="px-2 pb-2 border-b border-gray-50">
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Nearby Sellers</p>
             </div>
-            {SELLERS.map((seller) => (
+            {loading ? (
+              <div className="p-10 text-center space-y-4 animate-pulse">
+                <div className="w-12 h-12 bg-gray-100 rounded-2xl mx-auto" />
+                <div className="h-4 bg-gray-100 rounded w-1/2 mx-auto" />
+              </div>
+            ) : filteredSellers.map((seller) => (
               <div
                 key={seller.id}
                 onClick={() => setSelectedSeller(seller)}
@@ -301,7 +280,7 @@ export default function ListingsPage() {
                   <div className="mt-2 space-y-1.5">
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <MapPin className="w-3.5 h-3.5" />
-                      <span>{seller.location}</span>
+                      <span className="truncate">{seller.address}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Package className="w-3.5 h-3.5" />
@@ -322,6 +301,11 @@ export default function ListingsPage() {
                 </button>
               </div>
             ))}
+            {!loading && filteredSellers.length === 0 && (
+              <div className="p-10 text-center">
+                <p className="text-sm font-bold text-gray-400">No sellers matching your search.</p>
+              </div>
+            )}
           </aside>
 
           {/* RIGHT SIDE — SLIDING PANEL */}
@@ -572,9 +556,10 @@ export default function ListingsPage() {
 
                   <button 
                     onClick={handleConfirmPurchase}
-                    className="w-full py-5 bg-green-600 text-white rounded-2xl font-black text-base hover:bg-green-700 transition-all shadow-xl shadow-green-200 flex items-center justify-center gap-2 group/confirm"
+                    disabled={isSubmitting}
+                    className="w-full py-5 bg-green-600 text-white rounded-2xl font-black text-base hover:bg-green-700 transition-all shadow-xl shadow-green-200 flex items-center justify-center gap-2 group/confirm disabled:opacity-50"
                   >
-                    Confirm Purchase Request
+                    {isSubmitting ? "Sending Request..." : "Confirm Purchase Request"}
                     <ChevronRight className="w-5 h-5 group-hover/confirm:translate-x-1 transition-transform" />
                   </button>
                 </div>

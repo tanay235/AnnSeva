@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import AIResultBox from "../../../components/food/AIResultBox";
 import FoodForm from "../../../components/food/FoodForm";
 import { checkFoodSafety } from "../../../services/aiService";
-import { createFoodListing } from "../../../services/foodService";
+import { createInventoryListing } from "../../../services/inventoryService";
 
 const INITIAL_FORM = {
   imageFile: null,
@@ -153,18 +153,29 @@ export default function AddFoodPage() {
 
     setPublishLoading(true);
     try {
-      await createFoodListing({
-        foodName: values.foodName.trim(),
+      // Map the UI form 'values' to the Backend 'Inventory' schema
+      const inventoryData = {
+        foodName: values.foodName.trim(), // Backend foodService maps this to productName
         quantity: Number(values.quantity),
-        category: values.category.trim(),
+        category: values.category.trim() || 'Other',
         expiryDate: values.expiryDate,
-        originalPrice: Number(values.originalPrice),
-        location: values.location.trim(),
-        notes: values.notes.trim(),
-        imageName: values.imageFile?.name || "",
-        yourPrice: parsedYourPrice,
+        originalPrice: Number(values.originalPrice), // Maps to mrpPerUnit
+        yourPrice: parsedYourPrice, // Maps to listingPrice
+        notes: values.notes.trim(), // Maps to description
         aiResult,
-      });
+        // For the demo, if geolocation wasn't used, we use a default point
+        location: values.location.includes('Lat') 
+          ? { 
+              type: 'Point', 
+              coordinates: [
+                parseFloat(values.location.split('Lng ')[1]), 
+                parseFloat(values.location.split('Lat ')[1].split(',')[0])
+              ] 
+            }
+          : { type: 'Point', coordinates: [75.7873, 26.9124] } // Default Jaipur coord
+      };
+
+      await createInventoryListing(inventoryData);
 
       setMessage("Listing published successfully.");
       setAiError("");

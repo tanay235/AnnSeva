@@ -57,7 +57,11 @@ export default function FoodCard({ item, onDelete }) {
         <div className="flex gap-2 items-center justify-between mt-auto">
           <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-100 flex-1">
             <MapPin className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">{item.location || "Bengaluru"}</span>
+            <span className="truncate">
+              {typeof item.location === 'object' && item.location?.coordinates 
+                ? `Lat: ${item.location.coordinates[1].toFixed(2)}, Lng: ${item.location.coordinates[0].toFixed(2)}` 
+                : (item.location || "Bengaluru")}
+            </span>
           </div>
           <button
             onClick={(e) => {

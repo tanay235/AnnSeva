@@ -39,7 +39,26 @@ async function markAsRead(req, res, next) {
   }
 }
 
+/**
+ * Internal helper to create notifications (not an endpoint)
+ */
+async function createNotification({ user, title, message, type, relatedId }) {
+  try {
+    return await Notification.create({
+      userId: user,
+      title,
+      message,
+      type,
+      relatedId,
+      isRead: false
+    });
+  } catch (error) {
+    console.error('Failed to create notification:', error);
+  }
+}
+
 module.exports = {
   getUserNotifications,
   markAsRead,
+  createNotification
 };

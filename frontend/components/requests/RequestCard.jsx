@@ -17,7 +17,11 @@ export default function RequestCard({ request, onStatusChange }) {
           </div>
           <div>
             <p className="font-bold text-gray-900 text-sm">{request.buyerName}</p>
-            <p className="text-xs text-gray-500">Buyer · {request.location}</p>
+            <p className="text-xs text-gray-500 truncate max-w-[150px]">
+              Buyer · {typeof request.location === 'object' && request.location?.coordinates 
+                ? `Lat: ${request.location.coordinates[1].toFixed(2)}, Lng: ${request.location.coordinates[0].toFixed(2)}` 
+                : (request.location || "Bengaluru")}
+            </p>
           </div>
         </div>
         <StatusBadge status={request.status} />
