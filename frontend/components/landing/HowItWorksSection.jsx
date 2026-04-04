@@ -172,7 +172,7 @@ export default function HowItWorksSection() {
         <div className="grid lg:grid-cols-2 gap-8">
           <div className="reveal reveal-delay-1">
             <ProcessTrack
-              title="For Seller / Industry"
+              title="For Seller"
               icon={
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -184,7 +184,7 @@ export default function HowItWorksSection() {
           </div>
           <div className="reveal reveal-delay-2">
             <ProcessTrack
-              title="For Buyer / Wholesaler"
+              title="For Buyer"
               icon={
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>

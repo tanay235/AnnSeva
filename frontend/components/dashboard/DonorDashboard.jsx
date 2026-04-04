@@ -239,7 +239,7 @@ export default function DonorDashboard() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-lg font-bold text-gray-900">Buyer Requests</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{requests.length} buyer inquiries from wholesalers</p>
+            <p className="text-xs text-gray-400 mt-0.5">{requests.length} active buyer inquiries</p>
           </div>
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-green-700 text-xs font-bold">
             {requests.filter((r) => r.status === "pending").length}

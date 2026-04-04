@@ -31,8 +31,10 @@ const userSchema = new mongoose.Schema(
     },
     organizationName: {
       type: String,
-      required: [true, 'Organization / Company Name is required'],
       trim: true,
+      required: function() {
+        return this.role === 'seller';
+      }
     },
     phoneNumber: {
       type: String,

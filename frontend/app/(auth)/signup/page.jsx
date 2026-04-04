@@ -30,7 +30,7 @@ export default function SignupPage() {
               role === 'buyer' ? 'bg-white text-primary shadow-sm' : 'text-muted hover:text-dark'
             }`}
           >
-            Buyer / Wholesaler
+            Buyer
           </button>
           <button
             onClick={() => setRole('seller')}
@@ -38,7 +38,7 @@ export default function SignupPage() {
               role === 'seller' ? 'bg-white text-primary shadow-sm' : 'text-muted hover:text-dark'
             }`}
           >
-            Seller / Industry
+            Seller
           </button>
         </div>
 
@@ -62,17 +62,19 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-dark">Organization / Company Name</label>
-            <input 
-              type="text" 
-              placeholder="Acme Distribution Corp" 
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-dark placeholder:text-gray-400"
-            />
-          </div>
+          {role === 'seller' && (
+            <div className="space-y-2 animate-fade-in">
+              <label className="text-sm font-semibold text-dark">Organization / Company Name</label>
+              <input 
+                type="text" 
+                placeholder="Acme Distribution Corp" 
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-dark placeholder:text-gray-400"
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-dark">Work Email</label>
+            <label className="text-sm font-semibold text-dark">Email</label>
             <input 
               type="email" 
               placeholder="john@acme.com" 
@@ -80,23 +82,13 @@ export default function SignupPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-dark">GST Number</label>
-              <input 
-                type="text" 
-                placeholder="Optional" 
-                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-dark placeholder:text-gray-400"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-dark">Phone Number</label>
-              <input 
-                type="tel" 
-                placeholder="+91 90000 00000" 
-                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-dark placeholder:text-gray-400"
-              />
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-dark">Phone Number</label>
+            <input 
+              type="tel" 
+              placeholder="+91 90000 00000" 
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-dark placeholder:text-gray-400"
+            />
           </div>
 
           <div className="space-y-2">
