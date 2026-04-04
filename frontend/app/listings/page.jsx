@@ -189,7 +189,7 @@ export default function ListingsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               {/* Logo Section (kept from Sidebar) */}
-              <Link href="/dashboard" className="flex items-center gap-2.5">
+              <Link href="/dashboard/buyer" className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md shadow-green-200">
                   <Leaf className="w-5 h-5 text-white" />
                 </div>
@@ -204,10 +204,10 @@ export default function ListingsPage() {
               <h1 className="text-xl font-bold text-gray-900">Inventory Discovery Marketplace</h1>
             </div>
             <div className="flex items-center gap-4">
-              <Link href="/dashboard">
+              <Link href="/dashboard/buyer">
                 <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-white text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors shadow-sm">
                   <LayoutDashboard className="w-4 h-4" />
-                  Seller Dashboard
+                  Buyer Dashboard
                 </button>
               </Link>
               <div className="flex items-center gap-2 text-xs font-medium text-gray-500">

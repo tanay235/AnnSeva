@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Plus, Search, Leaf, Home } from "lucide-react";
+import { Bell, Plus, Search, Leaf, Home, List } from "lucide-react";
 
-export default function DashboardHeader() {
+export default function DashboardHeader({ isBuyer }) {
+  const dashboardHref = isBuyer ? "/dashboard/buyer" : "/dashboard/seller";
+  
   return (
     <header className="flex items-center justify-between py-4 border-b border-border bg-white px-8 sticky top-0 z-30 w-full shadow-sm">
       {/* Left: Logo Section */}
-      <Link href="/dashboard" className="flex items-center gap-2.5 group">
+      <Link href={dashboardHref} className="flex items-center gap-2.5 group">
         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md shadow-green-200 group-hover:scale-105 transition-transform duration-200">
           <Leaf className="w-5 h-5 text-white" />
         </div>
@@ -29,13 +31,23 @@ export default function DashboardHeader() {
           </span>
         </button>
 
-        {/* Add Product CTA */}
-        <Link href="/food/add">
-          <button className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-green-200 hover:shadow-lg hover:shadow-green-300 hover:-translate-y-0.5 transition-all duration-200">
-            <Plus className="w-4 h-4" strokeWidth={2.5} />
-            Add Product
-          </button>
-        </Link>
+        {isBuyer ? (
+          /* Buyer Specific CTA: Browse Deals */
+          <Link href="/listings">
+            <button className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-green-200 hover:shadow-lg hover:shadow-green-300 hover:-translate-y-0.5 transition-all duration-200">
+              <List className="w-4 h-4" strokeWidth={2.5} />
+              Browse Deals
+            </button>
+          </Link>
+        ) : (
+          /* Seller Specific CTA: Add Product */
+          <Link href="/food/add">
+            <button className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-green-200 hover:shadow-lg hover:shadow-green-300 hover:-translate-y-0.5 transition-all duration-200">
+              <Plus className="w-4 h-4" strokeWidth={2.5} />
+              Add Product
+            </button>
+          </Link>
+        )}
 
         {/* Back to Home CTA */}
         <Link href="/">
