@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "#listings", label: "My Listings", icon: List },
+  { href: "/listings", label: "Inventory Search", icon: List },
   { href: "#requests", label: "Requests", icon: InboxIcon },
   { href: "#", action: "map", label: "Map View", icon: MapPin },
   { href: "#", action: "profile", label: "Profile", icon: User },
