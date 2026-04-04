@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { formatAddress } from "@/lib/helpers";
 import { 
   ArrowLeft, 
   MapPin, 
@@ -134,7 +135,7 @@ export default function ListingDetailPage() {
              <div className="lg:col-span-7 space-y-6">
                 <div className="relative aspect-[16/10] bg-white rounded-[3rem] border border-border overflow-hidden shadow-2xl shadow-gray-200/50">
                    <img 
-                    src={listing.productImages?.[0] || CATEGORY_IMAGES[listing.category] || CATEGORY_IMAGES.Other} 
+                    src={listing.productImage || CATEGORY_IMAGES[listing.category] || CATEGORY_IMAGES.Other} 
                     alt={listing.productName} 
                     className="w-full h-full object-cover"
                    />
@@ -173,7 +174,7 @@ export default function ListingDetailPage() {
                             </div>
                             <div>
                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Warehouse Location</p>
-                               <p className="text-lg font-black text-gray-900">{listing.sellerId?.address || "Jaipur, Rajasthan"}</p>
+                               <p className="text-lg font-black text-gray-900">{formatAddress(listing.sellerId?.address) || "Jaipur, Rajasthan"}</p>
                             </div>
                          </div>
                       </div>
@@ -281,7 +282,7 @@ export default function ListingDetailPage() {
                       </div>
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
                          <MapPin className="w-3 h-3 text-green-600" />
-                         {listing.sellerId?.address || "Jaipur Hub"}
+                         {formatAddress(listing.sellerId?.address) || "Jaipur Hub"}
                       </p>
                    </div>
                 </div>

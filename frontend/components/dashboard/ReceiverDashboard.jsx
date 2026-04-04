@@ -21,11 +21,12 @@ import {
 } from "lucide-react";
 import StatsCard from "./StatsCard";
 import { cn } from "@/lib/utils";
+import { formatAddress } from "@/lib/helpers";
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import ChatWindow from "@/components/chat/ChatWindow";
 import { getNearbyDeals } from "@/services/inventoryService";
-import { getMyRequests, cancelRequest, getRequestDetails } from "@/services/requestService";
+import { getMyRequests, getRequestDetails } from "@/services/requestService";
 
 const CATEGORY_IMAGES = {
   'Snacks & Confectionery': 'https://images.unsplash.com/photo-1599490659223-eb157cbef92a?w=400&q=80',
@@ -45,7 +46,6 @@ export default function ReceiverDashboard() {
   // Tracking Modal State
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
-  const [isCancelLoading, setIsCancelLoading] = useState(false);
 
   // Chat State
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -85,19 +85,7 @@ export default function ReceiverDashboard() {
     }
   };
 
-  const handleCancel = async (requestId) => {
-    if (!window.confirm("Are you sure you want to cancel this request?")) return;
-    setIsCancelLoading(true);
-    try {
-      await cancelRequest(requestId);
-      await fetchData(); // Refresh list
-    } catch (error) {
-      console.error("Failed to cancel request:", error);
-      alert("Only pending requests can be cancelled.");
-    } finally {
-      setIsCancelLoading(false);
-    }
-  };
+
 
   const stats = [
     { title: "Available Deals", value: deals.length, icon: TrendingUp, color: "green", trend: "Opportunities nearby" },
@@ -149,7 +137,7 @@ export default function ReceiverDashboard() {
             return (
               <div key={deal._id} className="bg-white rounded-3xl border border-border overflow-hidden flex flex-col group hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
                 <Link href="/listings" className="relative h-44 overflow-hidden block">
-                  <img src={deal.productImages?.[0] || CATEGORY_IMAGES[deal.category] || CATEGORY_IMAGES.Other} alt={deal.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img src={deal.productImage || CATEGORY_IMAGES[deal.category] || CATEGORY_IMAGES.Other} alt={deal.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute top-4 left-4">
                     <span className={cn(
                       "px-3 py-1 rounded-full text-[10px] font-bold shadow-sm flex items-center gap-1 border border-white/20 backdrop-blur-md",
@@ -206,7 +194,7 @@ export default function ReceiverDashboard() {
             <div key={request._id} className="bg-white p-4 rounded-3xl border border-border flex items-center gap-5 hover:border-green-200 transition-all group shadow-sm hover:shadow-gray-100/50">
               <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 border border-gray-100">
                 <img 
-                  src={request.inventoryId?.productImages?.[0] || CATEGORY_IMAGES[request.inventoryId?.category] || CATEGORY_IMAGES.Other} 
+                  src={request.inventoryId?.productImage || CATEGORY_IMAGES[request.inventoryId?.category] || CATEGORY_IMAGES.Other} 
                   alt={request.inventoryId?.productName} 
                   className="w-full h-full object-cover" 
                 />
@@ -249,14 +237,7 @@ export default function ReceiverDashboard() {
                     <MessageSquare className="w-3 h-3" />
                     Chat
                   </button>
-                  {request.status === "Pending" && (
-                     <button 
-                       onClick={() => handleCancel(request._id)}
-                       className="text-[11px] font-bold text-red-500 hover:text-red-700 transition-colors uppercase tracking-tight"
-                     >
-                       Cancel
-                     </button>
-                   )}
+
                    <button 
                      onClick={() => handleTrackStatus(request._id)}
                      className="text-[11px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-tight"
@@ -375,7 +356,7 @@ export default function ReceiverDashboard() {
                     <div className="flex-1 min-w-0">
                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Fulfillment Partner</p>
                        <h4 className="font-black text-gray-900 truncate uppercase tracking-tight">{selectedRequest.sellerId?.organizationName || "Verified Wholesale Partner"}</h4>
-                       <p className="text-xs text-gray-500 flex items-center gap-1 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-green-600" /> {selectedRequest.sellerId?.address || "Warehouse Hub, Jaipur"}</p>
+                       <p className="text-xs text-gray-500 flex items-center gap-1 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-green-600" /> {formatAddress(selectedRequest.sellerId?.address) || "Warehouse Hub, Jaipur"}</p>
                     </div>
                     {selectedRequest.status === "Accepted" && (
                        <div className="flex gap-2">

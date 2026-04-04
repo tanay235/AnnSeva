@@ -20,9 +20,9 @@ async function createListing(payload) {
     mrpPerUnit: Number(payload.originalPrice),
     expiryDate: new Date(payload.expiryDate),
     listingPrice: Number(payload.yourPrice),
-    aiSuggestedPrice: payload.aiResult?.suggestedPrice,
+    aiSuggestedPrice: payload.aiResult?.expectedSellPrice || payload.aiResult?.suggestedPrice,
     description: payload.notes || "",
-    productImages: payload.imageName ? [payload.imageName] : [],
+    productImage: payload.imageBase64 || "",
     location: payload.location, // GeoJSON { type: 'Point', coordinates: [lng, lat] }
     status: 'active'
   };

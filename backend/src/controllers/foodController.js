@@ -4,32 +4,57 @@ const {
   getListingById,
   deleteListing,
 } = require("../services/foodService");
+const { normalizeCategoryName } = require("../utils/categories");
 
 async function createFoodListing(req, res, next) {
   try {
-    const { foodName, quantity, expiryDate, originalPrice, location, aiResult, yourPrice } =
+    const { foodName, quantity, expiryDate, originalPrice, location, aiResult, yourPrice, category, unit, notes } =
       req.body || {};
 
     if (!foodName || !quantity || !expiryDate || !originalPrice || !location) {
       return res.status(400).json({
+        success: false,
         message: "foodName, quantity, expiryDate, originalPrice and location are required.",
       });
     }
 
     if (!aiResult) {
       return res.status(400).json({
+        success: false,
         message: "Publish blocked: run price suggestion first.",
       });
     }
 
     if (!yourPrice || Number(yourPrice) <= 0) {
       return res.status(400).json({
+        success: false,
         message: "yourPrice is required and must be greater than 0.",
       });
     }
 
-    const listing = await createListing({ ...req.body, sellerId: req.user.id });
-    return res.status(201).json(listing);
+    // Verify seller is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated.",
+      });
+    }
+
+    // Normalize category to valid enum value
+    const normalizedCategory = normalizeCategoryName(category);
+
+    const listing = await createListing({ 
+      ...req.body, 
+      sellerId: req.user.id,
+      category: normalizedCategory,
+      unit: unit || 'Units',
+      notes: notes || ''
+    });
+    return res.status(201).json({
+      success: true,
+      data: listing,
+      message: "Listing created successfully."
+    });
   } catch (error) {
     return next(error);
   }

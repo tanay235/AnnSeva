@@ -17,8 +17,8 @@ export default function FoodCard({ item, onDelete }) {
       {/* Image */}
       <div className="relative h-40 overflow-hidden bg-gray-100">
         <img
-          src={item.image}
-          alt={item.name}
+          src={item.productImage || item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23e5e7eb%22 width=%22200%22 height=%22200%22/%3E%3C/svg%3E'}
+          alt={item.productName || item.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         {/* Category Badge */}
@@ -36,20 +36,20 @@ export default function FoodCard({ item, onDelete }) {
 
       {/* Content */}
       <div className="p-4 flex flex-col flex-1">
-        <h3 className="font-bold text-gray-900 text-base mb-0.5">{item.name}</h3>
-        <p className="text-sm text-gray-500 mb-3">{item.units} units available</p>
+        <h3 className="font-bold text-gray-900 text-base mb-0.5">{item.productName || item.name}</h3>
+        <p className="text-sm text-gray-500 mb-3">{item.quantityAvailable || item.units} units available</p>
 
         {/* Meta row */}
         <div className="flex flex-wrap gap-2 mb-4">
           <div className="flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100">
-            MRP: <span className="line-through">₹{item.mrp}</span>
+            MRP: <span className="line-through">₹{item.mrpPerUnit || item.mrp}</span>
           </div>
           <div className="flex items-center gap-1 text-xs font-bold text-green-700 bg-green-50 px-2.5 py-1 rounded-lg border border-green-200">
-            Our Price: ₹{item.ourPrice}
+            Our Price: ₹{item.listingPrice || item.ourPrice}
           </div>
           <div className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
             <Clock className="w-3 h-3" />
-            {item.expiry}
+            {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : item.expiry}
           </div>
         </div>
 

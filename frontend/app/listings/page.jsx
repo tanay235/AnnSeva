@@ -79,7 +79,9 @@ export default function ListingsPage() {
               distance: "Nearby",
               listingsCount: 0,
               businessType: "Verified Distributor",
-              address: deal.sellerId?.address || "Address Not Shared",
+              address: deal.sellerId?.address ? 
+                `${deal.sellerId.address.street || ''}, ${deal.sellerId.address.city || ''}, ${deal.sellerId.address.state || ''} ${deal.sellerId.address.pincode || ''}`.replace(/^, |, $|,$/g, '').trim() || "Address Not Shared"
+                : "Address Not Shared",
               phone: deal.sellerId?.phoneNumber || "Contact Shared on Request",
               inventory: []
             };
@@ -95,7 +97,7 @@ export default function ListingsPage() {
             category: deal.category,
             urgency: new Date(deal.expiryDate) - new Date() < 10*24*60*60*1000 ? "High" : "Medium",
             aiInsight: deal.description || "Fresh stock from warehouse. Optimal for retail resale.",
-            image: deal.productImages?.[0] || CATEGORY_IMAGES[deal.category] || CATEGORY_IMAGES.Other
+            image: deal.productImage || CATEGORY_IMAGES[deal.category] || CATEGORY_IMAGES.Other
           });
           sellersMap[sellerId].listingsCount++;
         });
@@ -136,6 +138,38 @@ export default function ListingsPage() {
 
       const result = await createRequest(requestData);
       
+      // Update local inventory after successful request
+      setSellers(prevSellers => 
+        prevSellers.map(seller => 
+          seller.id === selectedSeller.id 
+            ? {
+                ...seller,
+                inventory: seller.inventory.map(inv => 
+                  inv.id === purchaseItem.id 
+                    ? {
+                        ...inv,
+                        units: Math.max(0, inv.units - purchaseQuantity)
+                      }
+                    : inv
+                )
+              }
+            : seller
+        )
+      );
+
+      // Update selected seller inventory display
+      setSelectedSeller(prev => ({
+        ...prev,
+        inventory: prev.inventory.map(inv =>
+          inv.id === purchaseItem.id
+            ? {
+                ...inv,
+                units: Math.max(0, inv.units - purchaseQuantity)
+              }
+            : inv
+        )
+      }));
+
       // Store the result for chat context
       setActiveRequest({
         ...result,

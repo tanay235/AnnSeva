@@ -11,7 +11,7 @@ async function getBuyerRequests(req, res, next) {
     const requests = await Request.find({ buyerId: req.user.id })
       .populate({
         path: 'inventoryId',
-        select: 'productName mrpPerUnit listingPrice productImages category unit'
+        select: 'productName mrpPerUnit listingPrice productImage category unit'
       })
       .populate({
         path: 'sellerId',
@@ -31,7 +31,7 @@ async function getBuyerRequests(req, res, next) {
 async function getSellerRequests(req, res, next) {
   try {
     const requests = await Request.find({ sellerId: req.user.id })
-      .populate('inventoryId', 'productName mrpPerUnit listingPrice productImages status')
+      .populate('inventoryId', 'productName mrpPerUnit listingPrice productImage status')
       .populate('buyerId', 'firstName lastName email phoneNumber address')
       .sort({ createdAt: -1 });
 
@@ -61,6 +61,7 @@ async function createRequest(req, res, next) {
       throw error;
     }
 
+    // Create the request
     const request = await Request.create({
       buyerId: req.user.id,
       sellerId: inventory.sellerId,
@@ -71,6 +72,24 @@ async function createRequest(req, res, next) {
       pickupDeliveryTime,
       status: 'Pending'
     });
+
+    // Decrease inventory quantity using atomic operation
+    const updatedInventory = await Inventory.findByIdAndUpdate(
+      inventoryId,
+      { $inc: { quantityAvailable: -quantityRequested } },
+      { new: true }
+    );
+    
+    // Mark as sold_out if all quantity is depleted
+    if (updatedInventory.quantityAvailable === 0) {
+      await Inventory.findByIdAndUpdate(
+        inventoryId,
+        { status: 'sold_out' }
+      );
+      console.log(`[InventoryUpdate] Listing ${inventoryId} marked as sold_out`);
+    }
+    
+    console.log(`[InventoryUpdate] Quantity reduced by ${quantityRequested} for inventory ${inventoryId}`);
 
     // Notify Seller
     await createNotification({
@@ -93,7 +112,7 @@ async function createRequest(req, res, next) {
 async function getRequestById(req, res, next) {
   try {
     const request = await Request.findById(req.params.id)
-      .populate('inventoryId', 'productName mrpPerUnit listingPrice productImages category description')
+      .populate('inventoryId', 'productName mrpPerUnit listingPrice productImage category description')
       .populate('sellerId', 'firstName lastName organizationName address phoneNumber')
       .populate('buyerId', 'firstName lastName organizationName address phoneNumber');
 
@@ -114,30 +133,63 @@ async function getRequestById(req, res, next) {
  */
 async function cancelRequest(req, res, next) {
   try {
+    console.log(`[CancelRequest] Starting cancellation for request ${req.params.id} by user ${req.user.id}`);
+    
     const request = await Request.findById(req.params.id);
     if (!request) {
+      console.log(`[CancelRequest] Request not found: ${req.params.id}`);
       const error = new Error('Request not found');
       error.status = 404;
       throw error;
     }
+    
+    console.log(`[CancelRequest] Found request with status: ${request.status}, buyerId: ${request.buyerId}`);
 
     if (request.buyerId.toString() !== req.user.id) {
+      console.log(`[CancelRequest] Authorization denied - buyer mismatch`);
       const error = new Error('Not authorized to cancel this request');
       error.status = 403;
       throw error;
     }
 
     if (request.status !== 'Pending') {
+      console.log(`[CancelRequest] Cannot cancel - status is ${request.status}, not Pending`);
       const error = new Error('Only pending requests can be cancelled');
       error.status = 400;
       throw error;
     }
 
-    request.status = 'Cancelled';
-    await request.save();
+    // Restore inventory quantity when request is cancelled using atomic operation
+    console.log(`[CancelRequest] Restoring ${request.quantityRequested} units for inventory ${request.inventoryId}`);
+    await Inventory.findByIdAndUpdate(
+      request.inventoryId,
+      { $inc: { quantityAvailable: request.quantityRequested } }
+    );
+    
+    // If was marked as sold_out, change back to active
+    const inventory = await Inventory.findById(request.inventoryId);
+    if (inventory && inventory.status === 'sold_out') {
+      await Inventory.findByIdAndUpdate(
+        request.inventoryId,
+        { status: 'active' }
+      );
+      console.log(`[InventoryRestore] Status changed from sold_out to active for inventory ${request.inventoryId}`);
+    }
+    
+    console.log(`[InventoryRestore] ${request.quantityRequested} units restored for inventory ${request.inventoryId}`);
 
-    return res.status(200).json(request);
+    request.status = 'Cancelled';
+    console.log(`[CancelRequest] Saving request with status Cancelled...`);
+    const savedRequest = await request.save();
+    console.log(`[CancelRequest] Request saved successfully, status: ${savedRequest.status}`);
+    
+    console.log(`[CancelRequest] Successfully cancelled request ${req.params.id}`);
+
+    return res.status(200).json(savedRequest);
   } catch (error) {
+    console.log(`[CancelRequest] Error occurred: ${error.message}`);
+    console.log(`[CancelRequest] Error status: ${error.status}`);
+    console.log(`[CancelRequest] Error stack:`, error.stack);
     return next(error);
   }
 }
@@ -169,20 +221,26 @@ async function updateRequestStatus(req, res, next) {
       relatedId: request._id
     });
 
-    // Synchronize Inventory status if needed
-    if (['Accepted', 'Sold', 'Rejected', 'Cancelled'].includes(status)) {
-      const inventoryStatusMap = {
-        'Accepted': 'reserved',
-        'Sold': 'sold',
-        'Rejected': 'active',
-        'Cancelled': 'active'
-      };
-      
-      const newInventoryStatus = inventoryStatusMap[status];
-      if (newInventoryStatus) {
-        await Inventory.findByIdAndUpdate(request.inventoryId, { status: newInventoryStatus });
-        console.log(`[InventorySync] Listing ${request.inventoryId} status updated to: ${newInventoryStatus}`);
+    // Synchronize Inventory status and handle quantity restoration
+    const inventory = await Inventory.findById(request.inventoryId);
+    if (inventory) {
+      if (status === 'Rejected' || status === 'Cancelled') {
+        // Restore inventory quantity if rejected or cancelled
+        inventory.quantityAvailable += request.quantityRequested;
+        if (inventory.status === 'sold_out') {
+          inventory.status = 'active';
+        }
+        console.log(`[InventoryRestore] ${request.quantityRequested} units restored for inventory ${request.inventoryId} - Reason: ${status}`);
+      } else if (status === 'Accepted' || status === 'Sold') {
+        // Keep quantity reduced for accepted/sold orders
+        inventory.status = status === 'Sold' ? 'sold_out' : 'reserved';
+        if (inventory.quantityAvailable === 0) {
+          inventory.status = 'sold_out';
+        }
       }
+      
+      await inventory.save();
+      console.log(`[InventorySync] Listing ${request.inventoryId} status updated to: ${inventory.status}`);
     }
 
     return res.status(200).json(request);

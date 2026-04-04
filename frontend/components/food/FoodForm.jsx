@@ -1,6 +1,7 @@
 "use client";
 
 import FoodImageUpload from "./FoodImageUpload";
+import { VALID_CATEGORIES } from "@/lib/categories";
 
 export default function FoodForm({
   values,
@@ -43,13 +44,19 @@ export default function FoodForm({
         </label>
 
         <label>
-          <span>Category (Optional)</span>
-          <input
-            type="text"
+          <span>Category</span>
+          <select
             value={values.category}
             onChange={event => onFieldChange("category", event.target.value)}
-            placeholder="Ex: Biscuits / Beverage / Snacks"
-          />
+          >
+            <option value="">Select a category</option>
+            {VALID_CATEGORIES.map(cat => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+          {errors.category ? <small>{errors.category}</small> : null}
         </label>
 
         <label>

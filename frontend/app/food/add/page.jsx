@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import AIResultBox from "../../../components/food/AIResultBox";
 import FoodForm from "../../../components/food/FoodForm";
 import { checkFoodSafety } from "../../../services/aiService";
@@ -44,6 +45,9 @@ function validate(values) {
   if (!values.quantity || Number(values.quantity) <= 0) {
     errors.quantity = "Quantity must be greater than 0.";
   }
+  if (!values.category || !values.category.trim()) {
+    errors.category = "Please select a category.";
+  }
   if (!values.expiryDate) {
     errors.expiryDate = "Expiry date is required.";
   }
@@ -70,6 +74,7 @@ function validate(values) {
 }
 
 export default function AddFoodPage() {
+  const router = useRouter();
   const [values, setValues] = useState(INITIAL_FORM);
   const [errors, setErrors] = useState({});
   const [aiResult, setAiResult] = useState(null);
@@ -80,6 +85,16 @@ export default function AddFoodPage() {
   const [aiError, setAiError] = useState("");
   const [message, setMessage] = useState("");
   const [yourPrice, setYourPrice] = useState("");
+
+  // Redirect to dashboard on successful listing publication
+  useEffect(() => {
+    if (message === "Listing published successfully.") {
+      const timer = setTimeout(() => {
+        router.push("/dashboard/seller");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [message, router]);
 
   const currentSignature = useMemo(() => createFormSignature(values), [values]);
   const isAiValidForCurrentForm = checkedSignature && checkedSignature === currentSignature;
@@ -153,6 +168,17 @@ export default function AddFoodPage() {
 
     setPublishLoading(true);
     try {
+      // Convert image to base64
+      let imageBase64 = "";
+      if (values.imageFile) {
+        imageBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(values.imageFile);
+        });
+      }
+
       // Map the UI form 'values' to the Backend 'Inventory' schema
       const inventoryData = {
         foodName: values.foodName.trim(), // Backend foodService maps this to productName
@@ -163,6 +189,7 @@ export default function AddFoodPage() {
         yourPrice: parsedYourPrice, // Maps to listingPrice
         notes: values.notes.trim(), // Maps to description
         aiResult,
+        imageBase64, // Include base64 encoded image
         // For the demo, if geolocation wasn't used, we use a default point
         location: values.location.includes('Lat') 
           ? { 

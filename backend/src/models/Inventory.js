@@ -28,7 +28,7 @@ const inventorySchema = new mongoose.Schema(
     quantityAvailable: {
       type: Number,
       required: [true, 'Quantity available is required'],
-      min: 1,
+      min: 0,
     },
     unit: {
       type: String,
@@ -58,12 +58,10 @@ const inventorySchema = new mongoose.Schema(
       enum: ['active', 'sold_out', 'expired', 'recalled'],
       default: 'active',
     },
-    productImages: [
-      {
-        type: String,
-        description: 'URLs to product images hosted on a storage bucket',
-      }
-    ],
+    productImage: {
+      type: String,
+      description: 'Base64 encoded product image data',
+    },
     description: {
       type: String,
       trim: true,

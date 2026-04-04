@@ -191,7 +191,7 @@ export default function DonorDashboard() {
                 mrp: item.mrpPerUnit,
                 ourPrice: item.listingPrice,
                 expiry: `Expiry: ${new Date(item.expiryDate).toLocaleDateString()}`,
-                image: item.productImages?.[0] || CATEGORY_IMAGES[item.category] || CATEGORY_IMAGES.Other,
+                image: item.productImage || CATEGORY_IMAGES[item.category] || CATEGORY_IMAGES.Other,
                 location: item.location?.coordinates 
                   ? `Lat: ${item.location.coordinates[1]}, Lng: ${item.location.coordinates[0]}` 
                   : "Indiranagar, Bengaluru"

@@ -19,7 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
 /**
  * @param {Object} props
@@ -43,7 +43,7 @@ export default function ChatWindow({ request, currentUser, onClose }) {
   const fetchMessages = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/chat/${request.id || request._id}`, {
+      const response = await axios.get(`${API_URL}/api/chat/${request.id || request._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {
@@ -99,7 +99,7 @@ export default function ChatWindow({ request, currentUser, onClose }) {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.post(`${API_URL}/chat/send`, {
+      await axios.post(`${API_URL}/api/chat/send`, {
         requestId: request.id || request._id,
         receiverId: otherPartyId?._id || otherPartyId,
         text: tempMessage.text
