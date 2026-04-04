@@ -20,11 +20,14 @@ import {
   X,
   Check,
   LayoutDashboard,
+  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { getNearbyDeals } from "@/services/inventoryService";
 import { createRequest } from "@/services/requestService";
+import { useAuth } from "@/context/AuthContext";
+import ChatWindow from "@/components/chat/ChatWindow";
 
 const CATEGORY_IMAGES = {
   'Snacks & Confectionery': 'https://images.unsplash.com/photo-1599490659223-eb157cbef92a?w=400&q=80',
@@ -39,6 +42,7 @@ const CATEGORIES = ["All", "Snacks & Confectionery", "Beverages", "Staples & Gra
 const FILTERS = ["Expiring Soon", "High Discount", "Under ₹100"];
 
 export default function ListingsPage() {
+  const { user } = useAuth();
   const [sellers, setSellers] = useState([]);
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,6 +57,10 @@ export default function ListingsPage() {
   const [purchaseNote, setPurchaseNote] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeRequest, setActiveRequest] = useState(null);
+
+  // Chat State
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     async function fetchListings() {
@@ -116,7 +124,7 @@ export default function ListingsPage() {
     if (!purchaseItem || !selectedSeller) return;
     setIsSubmitting(true);
     try {
-      await createRequest({
+      const requestData = {
         sellerId: selectedSeller.id,
         inventoryId: purchaseItem.id,
         quantityRequested: purchaseQuantity,
@@ -124,14 +132,24 @@ export default function ListingsPage() {
         expectedPriceTotal: purchaseQuantity * purchaseItem.recommendedPrice,
         pickupDeliveryTime: '5:00 PM Today',
         note: purchaseNote
+      };
+
+      const result = await createRequest(requestData);
+      
+      // Store the result for chat context
+      setActiveRequest({
+        ...result,
+        productName: purchaseItem.name,
+        sellerName: selectedSeller.name,
+        totalPrice: requestData.expectedPriceTotal,
+        quantity: purchaseQuantity
       });
+
       setIsSuccess(true);
-      setTimeout(() => {
-        setIsModalOpen(false);
-        setIsSuccess(false);
-      }, 2000);
+      // Don't close immediately, let user see success and potentially open chat
     } catch (error) {
       console.error("Failed to send purchase request:", error);
+      alert(error.response?.data?.message || "Failed to send request. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -481,12 +499,36 @@ export default function ListingsPage() {
           {/* Modal Content */}
           <div className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-fade-up">
             {isSuccess ? (
-              <div className="p-12 text-center space-y-4">
+              <div className="p-12 text-center space-y-6">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Check className="w-10 h-10 text-green-600" />
                 </div>
-                <h3 className="text-2xl font-black text-gray-900">Request Sent!</h3>
-                <p className="text-gray-500">Your purchase request for <strong>{purchaseQuantity} units</strong> of {purchaseItem.name} has been sent to {selectedSeller.name}.</p>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black text-gray-900">Request Sent!</h3>
+                  <p className="text-gray-500 text-sm">Your purchase request for <strong>{purchaseQuantity} units</strong> of {purchaseItem.name} has been sent to {selectedSeller.name}.</p>
+                </div>
+                
+                <div className="flex flex-col gap-3 pt-4">
+                  <button 
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setIsChatOpen(true);
+                    }}
+                    className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold text-sm hover:bg-green-700 transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    Message Seller
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setIsSuccess(false);
+                    }}
+                    className="w-full py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold text-sm hover:bg-gray-200 transition-all"
+                  >
+                    Back to Marketplace
+                  </button>
+                </div>
               </div>
             ) : (
               <>
@@ -566,6 +608,17 @@ export default function ListingsPage() {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {/* CHAT WINDOW */}
+      {isChatOpen && activeRequest && user && (
+        <div className="fixed bottom-6 right-6 z-50 w-[400px] max-w-[calc(100vw-3rem)]">
+          <ChatWindow 
+            request={activeRequest}
+            currentUser={user}
+            onClose={() => setIsChatOpen(false)}
+          />
         </div>
       )}
     </div>

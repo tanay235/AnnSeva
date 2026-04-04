@@ -15,6 +15,8 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import StatsCard from "@/components/dashboard/StatsCard";
 import FoodCard from "@/components/food/FoodCard";
 import RequestCard from "@/components/requests/RequestCard";
+import ChatWindow from "@/components/chat/ChatWindow";
+import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState, useCallback } from "react";
 import { getMyListings, deleteInventoryListing } from "@/services/inventoryService";
 import { getIncomingRequests, updateRequestStatus } from "@/services/requestService";
@@ -30,11 +32,16 @@ const CATEGORY_IMAGES = {
 const FILTER_OPTIONS = ["All", "Active", "Reserved", "Sold"];
 
 export default function DonorDashboard() {
+  const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState("All");
   const [sortOrder, setSortOrder] = useState("newest");
   const [listings, setListings] = useState([]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Chat State
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [activeChatRequest, setActiveChatRequest] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -233,7 +240,17 @@ export default function DonorDashboard() {
                pickupTime: req.pickupDeliveryTime,
                status: req.status.toLowerCase()
              };
-             return <RequestCard key={req._id} request={cardRequest} onStatusChange={handleRequestStatusChange} />;
+             return (
+               <RequestCard 
+                 key={req._id} 
+                 request={cardRequest} 
+                 onStatusChange={handleRequestStatusChange} 
+                 onChatOpen={(req) => {
+                   setActiveChatRequest(req);
+                   setIsChatOpen(true);
+                 }}
+               />
+             );
           })}
           {requests.length === 0 && (
             <div className="p-10 bg-gray-50 border-2 border-dashed border-gray-100 rounded-3xl text-center col-span-full">
@@ -242,6 +259,17 @@ export default function DonorDashboard() {
           )}
         </div>
       </section>
+
+      {/* CHAT WINDOW */}
+      {isChatOpen && activeChatRequest && user && (
+        <div className="fixed bottom-6 right-6 z-50 w-[400px] max-w-[calc(100vw-3rem)]">
+          <ChatWindow 
+            request={activeChatRequest}
+            currentUser={user}
+            onClose={() => setIsChatOpen(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }

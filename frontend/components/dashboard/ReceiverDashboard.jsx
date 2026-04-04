@@ -15,11 +15,15 @@ import {
   MapPin,
   CheckCircle,
   Truck,
-  Phone
+  Phone,
+  Info,
+  MessageSquare
 } from "lucide-react";
 import StatsCard from "./StatsCard";
 import { cn } from "@/lib/utils";
 import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
+import ChatWindow from "@/components/chat/ChatWindow";
 import { getNearbyDeals } from "@/services/inventoryService";
 import { getMyRequests, cancelRequest, getRequestDetails } from "@/services/requestService";
 
@@ -33,6 +37,7 @@ const CATEGORY_IMAGES = {
 };
 
 export default function ReceiverDashboard() {
+  const { user } = useAuth();
   const [deals, setDeals] = useState([]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +46,10 @@ export default function ReceiverDashboard() {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [isCancelLoading, setIsCancelLoading] = useState(false);
+
+  // Chat State
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [activeChatRequest, setActiveChatRequest] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -223,8 +232,24 @@ export default function ReceiverDashboard() {
               </div>
               <div className="text-right shrink-0">
                 <p className="text-sm font-black text-gray-900">₹{request.expectedPriceTotal}</p>
-                <div className="flex gap-2 mt-1">
-                   {request.status === "Pending" && (
+                <div className="flex items-center gap-3 mt-1 justify-end">
+                  <button 
+                    onClick={() => {
+                      setActiveChatRequest({
+                        ...request,
+                        productName: request.inventoryId?.productName,
+                        sellerName: request.sellerId?.organizationName || "Wholesale Partner",
+                        totalPrice: request.expectedPriceTotal,
+                        quantity: request.quantityRequested
+                      });
+                      setIsChatOpen(true);
+                    }}
+                    className="text-[11px] font-bold text-green-600 hover:underline flex items-center gap-1 uppercase tracking-tight"
+                  >
+                    <MessageSquare className="w-3 h-3" />
+                    Chat
+                  </button>
+                  {request.status === "Pending" && (
                      <button 
                        onClick={() => handleCancel(request._id)}
                        className="text-[11px] font-bold text-red-500 hover:text-red-700 transition-colors uppercase tracking-tight"
@@ -234,7 +259,7 @@ export default function ReceiverDashboard() {
                    )}
                    <button 
                      onClick={() => handleTrackStatus(request._id)}
-                     className="text-[11px] font-bold text-green-600 hover:text-green-700 uppercase tracking-tight"
+                     className="text-[11px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-tight"
                    >
                      Track
                    </button>
@@ -259,6 +284,17 @@ export default function ReceiverDashboard() {
           )}
         </div>
       </section>
+
+      {/* CHAT WINDOW */}
+      {isChatOpen && activeChatRequest && user && (
+        <div className="fixed bottom-6 right-6 z-[60] w-[400px] max-w-[calc(100vw-3rem)]">
+          <ChatWindow 
+            request={activeChatRequest}
+            currentUser={user}
+            onClose={() => setIsChatOpen(false)}
+          />
+        </div>
+      )}
 
 
       {/* TRACKING MODAL */}
@@ -342,10 +378,29 @@ export default function ReceiverDashboard() {
                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-green-600" /> {selectedRequest.sellerId?.address || "Warehouse Hub, Jaipur"}</p>
                     </div>
                     {selectedRequest.status === "Accepted" && (
-                       <button className="px-5 py-2.5 bg-green-600 text-white rounded-xl font-bold text-[11px] shadow-lg shadow-green-100 hover:bg-green-700 transition-all flex items-center gap-1.5 uppercase">
-                          <Phone className="w-3.5 h-3.5" />
-                          Contact
-                       </button>
+                       <div className="flex gap-2">
+                          <button 
+                            onClick={() => {
+                              setSelectedRequest(null);
+                              setActiveChatRequest({
+                                ...selectedRequest,
+                                productName: selectedRequest.inventoryId?.productName,
+                                sellerName: selectedRequest.sellerId?.organizationName || "Wholesale Partner",
+                                totalPrice: selectedRequest.expectedPriceTotal,
+                                quantity: selectedRequest.quantityRequested
+                              });
+                              setIsChatOpen(true);
+                            }}
+                            className="px-4 py-2 bg-green-600 text-white rounded-xl font-bold text-[10px] shadow-lg shadow-green-100 hover:bg-green-700 transition-all flex items-center gap-1.5 uppercase whitespace-nowrap"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            Chat with Seller
+                          </button>
+                          <button className="px-4 py-2 bg-gray-50 text-gray-600 rounded-xl font-bold text-[10px] hover:bg-gray-200 transition-all flex items-center gap-1.5 uppercase whitespace-nowrap">
+                            <Phone className="w-3.5 h-3.5" />
+                            Call Seller
+                          </button>
+                       </div>
                     )}
                  </div>
               </div>
