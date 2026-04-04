@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Search,
   SlidersHorizontal,
@@ -19,6 +20,7 @@ import {
   Leaf,
   X,
   Check,
+  LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -187,7 +189,7 @@ export default function ListingsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               {/* Logo Section (kept from Sidebar) */}
-              <div className="flex items-center gap-2.5">
+              <Link href="/dashboard" className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md shadow-green-200">
                   <Leaf className="w-5 h-5 text-white" />
                 </div>
@@ -197,13 +199,21 @@ export default function ListingsPage() {
                   </span>
                   <p className="text-[10px] text-gray-400 -mt-0.5 font-medium">Inventory Liquidation Platform</p>
                 </div>
-              </div>
+              </Link>
               <div className="h-8 w-px bg-gray-100" />
               <h1 className="text-xl font-bold text-gray-900">Inventory Discovery Marketplace</h1>
             </div>
-            <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
-              <Navigation className="w-3.5 h-3.5 text-green-600" />
-              <span>Bengaluru, Karnataka</span>
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard">
+                <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-white text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors shadow-sm">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Seller Dashboard
+                </button>
+              </Link>
+              <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                <Navigation className="w-3.5 h-3.5 text-green-600" />
+                <span>Bengaluru, Karnataka</span>
+              </div>
             </div>
           </div>
 

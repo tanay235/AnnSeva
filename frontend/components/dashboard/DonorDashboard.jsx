@@ -156,23 +156,16 @@ export default function DonorDashboard() {
     { title: "Sold", value: listings.filter(l => l.status === "sold").length, icon: Package, color: "blue", trend: "Successfully cleared" },
   ];
 
-  const handleDeleteListing = (itemToDelete) => {
-    if (typeof window !== "undefined" && window.confirm(`Are you sure you want to delete ${itemToDelete.name}?`)) {
-      setListings(listings.filter(item => item.id !== itemToDelete.id));
-    }
+  const handleDeleteListing = (id) => {
+    setListings(listings.filter((l) => l.id !== id));
   };
 
-  const handleRequestStatusChange = (requestId, newStatus) => {
-    setRequests(requests.map(req => 
-      req.id === requestId ? { ...req, status: newStatus } : req
-    ));
+  const handleRequestStatusChange = (id, newStatus) => {
+    setRequests(requests.map(r => r.id === id ? { ...r, status: newStatus } : r));
   };
-
 
   return (
     <div className="animate-fade-in space-y-10">
-      {/* Header */}
-      <DashboardHeader />
 
       {/* Stats */}
       <section>
