@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClearStock - High Level Architecture</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .diagram-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .diagram-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            overflow: auto;
+        }
+        
+        .export-buttons {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-secondary {
+            background: #764ba2;
+        }
+        
+        .btn-secondary:hover {
+            background: #667eea;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            color: #1976d2;
+        }
+        
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            padding: 20px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 ClearStock</h1>
+            <p>B2B Food Liquidation Marketplace - System Architecture</p>
+        </div>
+        
+        <!-- Diagram 1: System Architecture -->
+        <div class="diagram-section">
+            <h2>📐 System Architecture</h2>
+            <div class="info">
+                <strong>💡 Tip:</strong> Right-click on the diagram → "Save image as" to export as PNG
+            </div>
+            <div class="mermaid">
+graph TB
+    subgraph Client["🖥️ CLIENT LAYER (Frontend)"]
+        NextJS["Next.js 14 + React 18<br/>Port 3002"]
+        Auth["Auth Module<br/>Login/Signup"]
+        BuyerDash["Buyer Dashboard<br/>Browse Deals"]
+        SellerDash["Seller Dashboard<br/>Manage Inventory"]
+        Profile["User Profiles<br/>Addresses & Settings"]
+        Chat["Chat Module<br/>Negotiations"]
+    end
+
+    subgraph API["⚙️ API LAYER (Backend)"]
+        Express["Express.js REST API<br/>Port 5000"]
+        AuthAPI["Auth Routes<br/>JWT Tokens"]
+        FoodAPI["Food Routes<br/>CRUD Operations"]
+        ReqAPI["Request Routes<br/>Deal Management"]
+        UserAPI["User Routes<br/>Profile Management"]
+        ChatAPI["Chat Routes<br/>Messaging"]
+        NotifAPI["Notification Routes<br/>Alerts"]
+    end
+
+    subgraph DB["💾 DATA LAYER (MongoDB)"]
+        Users["Users Collection<br/>Sellers, Buyers, Admin"]
+        Inventory["Inventory Collection<br/>Products, Prices, Images"]
+        Requests["Requests Collection<br/>Deal Negotiations"]
+        Messages["Messages Collection<br/>Chat History"]
+        Notifications["Notifications Collection<br/>Alerts"]
+        AICheck["AICheck Collection<br/>Pricing Audit"]
+    end
+
+    subgraph External["🌐 EXTERNAL SERVICES"]
+        Gemini["Google Gemini API<br/>AI Price Suggestions"]
+        Mapbox["Mapbox API<br/>Geolocation & Distance"]
+        JWT["JWT Authentication<br/>Token Management"]
+    end
+
+    Client -->|HTTP Requests| API
+    API -->|Mongoose ODM| DB
+    
+    Auth -.->|API Calls| AuthAPI
+    BuyerDash -.->|Browse & Request| FoodAPI
+    BuyerDash -.->|Track Requests| ReqAPI
+    SellerDash -.->|Manage Listings| FoodAPI
+    SellerDash -.->|Accept/Reject Deals| ReqAPI
+    Profile -.->|Edit Profile| UserAPI
+    Chat -.->|Send Messages| ChatAPI
+    
+    AuthAPI -->|Verify & Create| Users
+    AuthAPI -->|Generate| JWT
+    
+    FoodAPI -->|CRUD| Inventory
+    FoodAPI -->|AI Pricing| Gemini
+    
+    ReqAPI -->|Create/Update| Requests
+    ReqAPI -->|Sync Quantity| Inventory
+    
+    UserAPI -->|Update| Users
+    
+    ChatAPI -->|Store| Messages
+    
+    NotifAPI -->|Create| Notifications
+    
+    Mapbox -->|Distance Calc| BuyerDash
+    Mapbox -->|Location Filter| FoodAPI
+    
+    style Client fill:#e1f5ff
+    style API fill:#f3e5f5
+    style DB fill:#e8f5e9
+    style External fill:#fff3e0
+    style NextJS fill:#0277bd,color:#fff
+    style Express fill:#6a1b9a,color:#fff
+    style Gemini fill:#ff6d00,color:#fff
+    style Mapbox fill:#ff6d00,color:#fff
+            </div>
+        </div>
+        
+        <!-- Diagram 2: User Journey & Data Flow -->
+        <div class="diagram-section">
+            <h2>🔄 User Journey & Data Flow</h2>
+            <div class="info">
+                <strong>💡 Tip:</strong> Right-click on the diagram → "Save image as" to export as PNG
+            </div>
+            <div class="mermaid">
+graph TD
+    A["👤 User Visits ClearStock"] -->|Sign Up| B["Create Account<br/>Role: Seller/Buyer"]
+    
+    A -->|Login| C["JWT Token Generated<br/>Session Starts"]
+    
+    subgraph SellerFlow["🏪 SELLER WORKFLOW"]
+        D["Dashboard"] --> E["Add Food Listing"]
+        E --> F["Upload Image<br/>Convert to Base64"]
+        F --> G["Gemini API<br/>Suggests Price"]
+        G --> H["Listing Published<br/>Stored in MongoDB"]
+        H --> I["Buyers Can Discover<br/>Via Location/Category"]
+        I --> J["Buyer Makes Request"]
+        J --> K["Inventory Auto-Decreases"]
+        K --> L["Accept/Reject Deal"]
+        L --> M["Chat with Buyer"]
+    end
+    
+    subgraph BuyerFlow["🛍️ BUYER WORKFLOW"]
+        N["Dashboard"] --> O["Browse Nearby Deals<br/>Mapbox Geolocation"]
+        O --> P["View Product Details<br/>Images & Pricing"]
+        P --> Q["Request Wholesale Qty"]
+        Q --> R["Inventory Deducted<br/>Reservation Created"]
+        R --> S["Track Request Status<br/>Pending/Accepted/Sold"]
+        S --> T["Chat with Seller<br/>Negotiate Terms"]
+        T --> U["Deal Completed<br/>Order Marked Sold"]
+    end
+    
+    C -->|Role: Seller| SellerFlow
+    C -->|Role: Buyer| BuyerFlow
+    
+    K -->|Qty = 0| V["✅ Inventory Auto-Deleted<br/>Deal Completed"]
+    U --> V
+    
+    style A fill:#fff9c4
+    style B fill:#c8e6c9
+    style C fill:#c8e6c9
+    style SellerFlow fill:#f0f4c3
+    style BuyerFlow fill:#bbdefb
+    style V fill:#a5d6a7
+            </div>
+        </div>
+        
+        <div class="export-buttons">
+            <button class="btn" onclick="exportDiagram('diagram1')">📥 Export Architecture as PNG</button>
+            <button class="btn btn-secondary" onclick="exportDiagram('diagram2')">📥 Export User Journey as PNG</button>
+            <button class="btn" onclick="window.print()">🖨️ Print Both Diagrams</button>
+        </div>
+    </div>
+    
+    <footer>
+        <p>ClearStock Architecture Documentation | Generated on April 5, 2026</p>
+        <p style="margin-top: 10px; font-size: 0.9em;">💡 Tip: Use browser's "Save as PNG" or screenshot tools to export diagrams</p>
+    </footer>
+    
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+        
+        function exportDiagram(diagramId) {
+            alert('Right-click on the diagram and select "Save image as..." to download as PNG, or use your browser\'s print-to-PDF feature (Ctrl+P)');
+        }
+    </script>
+</body>
+</html>
